@@ -175,7 +175,7 @@ spec:
         route_prefix: "/"
         runtime_env:
           env_vars:
-            MODEL_ID: "askulkarni2/neuron-mistral7bv0.3"
+            MODEL_ID: "/work-dir/model/neuron-mistral7bv0.3"
             TENSOR_PARALLELISM: "2"
             BLOCK_SIZE: "10240"
             MAX_MODEL_LEN: "10240"
@@ -186,7 +186,7 @@ spec:
             NEURON_CORES: "2"
             HF_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
             #NEURON_QUANT_DTYPE: "s8"
-            NEURON_COMPILE_CACHE_URL: "askulkarni2/neuron-mistral7bv0.3/neuron-compile-cache/"
+            NEURON_COMPILE_CACHE_URL: "/work-dir/model/neuron-mistral7bv0.3/neuron-compile-cache"
         deployments:
           - name: VLLMDeployment
             autoscaling_config:
@@ -212,6 +212,20 @@ spec:
         num-cpus: "0"
       template:
         spec:
+          initContainers:
+            - name: download-model
+              image: public.ecr.aws/data-on-eks/vllm-ray2.32.0-inf2-llama3:latest
+              command:
+              - /bin/bash
+              - -c
+              - |
+                set -e
+                echo "Starting model download..."
+                mkdir -p /work-dir/model
+                huggingface-cli download askulkarni2/neuron-mistral7bv0.3 --local-dir /work-dir/model/neuron-mistral7bv0.3 --local-dir-use-symlinks False
+              volumeMounts:
+              - name: workdir
+                mountPath: "/work-dir"
           containers:
           - name: head
             #image: public.ecr.aws/data-on-eks/vllm-ray2.35.0-neuron:latest
@@ -236,6 +250,8 @@ spec:
             - name: vllm-script
               mountPath: /home/ray/vllm_serve.py
               subPath: vllm_serve.py
+            - name: workdir
+              mountPath: "/work-dir"
             resources:
               limits:
                 cpu: "2"
@@ -254,6 +270,8 @@ spec:
           - name: vllm-script
             configMap:
               name: vllm-serve-script
+          - name: workdir
+            emptyDir: {}
           nodeSelector:
             instanceType: mixed-x86
             workload: rayhead
@@ -268,6 +286,20 @@ spec:
         num-cpus: "2"
       template:
         spec:
+          initContainers:
+            - name: download-model
+              image: public.ecr.aws/data-on-eks/vllm-ray2.32.0-inf2-llama3:latest
+              command:
+              - /bin/bash
+              - -c
+              - |
+                set -e
+                echo "Starting model download..."
+                mkdir -p /work-dir/model
+                huggingface-cli download askulkarni2/neuron-mistral7bv0.3 --local-dir /work-dir/model/neuron-mistral7bv0.3 --local-dir-use-symlinks False
+              volumeMounts:
+              - name: workdir
+                mountPath: "/work-dir"
           containers:
           - name: worker
             #image: public.ecr.aws/data-on-eks/vllm-ray2.35.0-neuron:latest
@@ -299,6 +331,8 @@ spec:
             - name: vllm-script
               mountPath: /home/ray/vllm_serve.py
               subPath: vllm_serve.py
+            - name: workdir
+              mountPath: "/work-dir"
           volumes:
           - name: dshm
             emptyDir:
@@ -308,6 +342,8 @@ spec:
           - name: vllm-script
             configMap:
               name: vllm-serve-script
+          - name: workdir
+            emptyDir: {}
           nodeSelector:
             instanceType: inferentia-inf2
             provisionerType: Karpenter
