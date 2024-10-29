@@ -3,7 +3,7 @@
 # 1. Set up an S3 bucket to store the generated data.
 # 2. Update the `eks.tf` file to modify `min_size=6` and `desired_size=6` for the managed node group `"spark_graviton_r6g"`, then run `terraform apply`.
 # 3. Confirm that the `"spark-team-a"` namespace exists.
-# 4. Replace `spark-benchmarks-tpcds-data-1tb` in the configuration with your actual bucket name.
+# 4. Replace `<S3_BUCKET>` in the configuration with your actual bucket name.
 # 5. Run `kubectl apply -f <filename>` to apply the configuration.
 
 ---
@@ -25,9 +25,9 @@ spec:
   mainApplicationFile: local:///opt/spark/examples/jars/eks-spark-benchmark-assembly-1.0.jar
   arguments:
     # TPC-DS data location
-    - "s3a://spark-benchmarks-tpcds-data-1tb/TPCDS-TEST-1TB"
+    - "s3a://<S3_BUCKET>/TPCDS-TEST-1TB"
     # results location
-    - "s3a://spark-benchmarks-tpcds-data-1tb/TPCDS-TEST-1T-RESULT"
+    - "s3a://<S3_BUCKET>/TPCDS-TEST-1T-RESULT"
     # Path to kit in the docker image
     - "/opt/tpcds-kit/tools"
     # Data Format
