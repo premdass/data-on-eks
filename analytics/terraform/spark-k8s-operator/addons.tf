@@ -410,10 +410,6 @@ module "eks_data_addons" {
     version = "2.0.2"
     values = [
       <<-EOT
-        controller:
-          batchScheduler:
-            enable: true
-            default: "yunikorn"
         spark:
           # -- List of namespaces where to run spark jobs.
           # If empty string is included, all namespaces will be allowed.
@@ -436,7 +432,7 @@ module "eks_data_addons" {
   #---------------------------------------------------------------
   # Apache YuniKorn Add-on
   #---------------------------------------------------------------
-  enable_yunikorn = var.enable_yunikorn
+  enable_yunikorn = false
   yunikorn_helm_config = {
     version = "1.6.0"
     values  = [templatefile("${path.module}/helm-values/yunikorn-values.yaml", {})]

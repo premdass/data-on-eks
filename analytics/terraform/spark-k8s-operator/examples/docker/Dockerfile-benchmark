@@ -40,7 +40,7 @@ RUN git clone https://github.com/databricks/tpcds-kit.git && \
     chmod +x dsdgen dsqgen
 
 # Clone the SQL perf library and related files
-RUN git clone -b delta https://github.com/aws-samples/emr-on-eks-benchmark.git /tmp/emr-on-eks-benchmark
+RUN git clone -b tpcds-v2.13 https://github.com/aws-samples/emr-on-eks-benchmark.git /tmp/emr-on-eks-benchmark
 
 # Build the Databricks SQL perf library
 RUN cd /tmp/emr-on-eks-benchmark/spark-sql-perf && sbt +package
