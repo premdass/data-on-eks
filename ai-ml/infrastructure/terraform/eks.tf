@@ -13,6 +13,9 @@ module "eks" {
   #WARNING: Avoid using this option (cluster_endpoint_public_access = true) in preprod or prod accounts. This feature is designed for sandbox accounts, simplifying cluster deployment and testing.
   cluster_endpoint_public_access = true
 
+  //to handle access entry requirements while creating the cluster
+  access_entries = var.access_entries
+
   vpc_id = module.vpc.vpc_id
   # Filtering only Secondary CIDR private subnets starting with "100.".
   # Subnet IDs where the EKS Control Plane ENIs will be created
