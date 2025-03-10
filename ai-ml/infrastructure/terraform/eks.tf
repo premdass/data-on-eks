@@ -3,7 +3,7 @@
 #---------------------------------------------------------------
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "~> 19.15"
+  version = "~> 20.17"
 
   cluster_name    = local.name
   cluster_version = var.eks_cluster_version
@@ -13,8 +13,9 @@ module "eks" {
   #WARNING: Avoid using this option (cluster_endpoint_public_access = true) in preprod or prod accounts. This feature is designed for sandbox accounts, simplifying cluster deployment and testing.
   cluster_endpoint_public_access = true
 
-  //to handle access entry requirements while creating the cluster
+  enable_cluster_creator_admin_permissions = true
   access_entries = var.access_entries
+
 
   vpc_id = module.vpc.vpc_id
   # Filtering only Secondary CIDR private subnets starting with "100.".
@@ -22,24 +23,11 @@ module "eks" {
   subnet_ids = compact([for subnet_id, cidr_block in zipmap(module.vpc.private_subnets, module.vpc.private_subnets_cidr_blocks) :
   substr(cidr_block, 0, 4) == "100." ? subnet_id : null])
 
-  manage_aws_auth_configmap = true
-  aws_auth_roles = [
-    # We need to add in the Karpenter node IAM role for nodes launched by Karpenter
-    {
-      rolearn  = module.eks_blueprints_addons.karpenter.node_iam_role_arn
-      username = "system:node:{{EC2PrivateDNSName}}"
-      groups = [
-        "system:bootstrappers",
-        "system:nodes",
-      ]
-    },
-    {
-      # Required for EMR on EKS virtual cluster
-      rolearn  = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AWSServiceRoleForAmazonEMRContainers"
-      username = "emr-containers"
-      groups   = []
-    },
-  ]
+  kms_key_administrators = distinct(concat([
+    "arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"],
+    var.kms_key_admin_roles,
+    [data.aws_iam_session_context.current.issuer_arn]
+  ))
   #---------------------------------------
   # Note: This can further restricted to specific required for each Add-on and your application
   #---------------------------------------

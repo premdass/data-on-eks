@@ -197,3 +197,9 @@ variable "access_entries" {
   type        = any
   default     = {}
 }
+
+variable "kms_key_admin_roles" {
+  description = "list of role ARNs to add to the KMS policy"
+  type        = list(string)
+  default     = []
+}
