@@ -648,14 +648,17 @@ resource "aws_secretsmanager_secret_version" "grafana" {
 
 resource "kubectl_manifest" "neuron_monitor" {
   yaml_body = file("${path.module}/monitoring/neuron-monitor-daemonset.yaml")
+  depends_on = [module.eks.access_entries]
 }
 
 resource "kubectl_manifest" "dcgm" {
   yaml_body = file("${path.module}/monitoring/dcgm.yaml")
+  depends_on = [module.eks.access_entries]
 }
 
 resource "kubectl_manifest" "dcgm_service" {
   yaml_body = file("${path.module}/monitoring/dcgm-service.yaml")
+  depends_on = [module.eks.access_entries]
 }
 
 resource "kubectl_manifest" "efs_sc" {
@@ -667,6 +670,7 @@ resource "kubectl_manifest" "efs_sc" {
       name: efs-sc
     provisioner: efs.csi.aws.com
   YAML
+  depends_on = [module.eks.access_entries]
 }
 
 data "aws_iam_policy_document" "karpenter_controller_policy" {
