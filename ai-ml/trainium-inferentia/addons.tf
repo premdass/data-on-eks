@@ -272,7 +272,7 @@ module "eks_data_addons" {
     inferentia-inf2 = {
       values = [
         <<-EOT
-      name: inferentia-inf2
+      name: trainium-trn1
       clusterName: ${module.eks.cluster_name}
       ec2NodeClass:
         karpenterRole: ${module.karpenter.node_iam_role_name}
@@ -289,12 +289,11 @@ module "eks_data_addons" {
           encrypted: true
           deleteOnTermination: true
         amiSelectorTerms:
-          - alias: al2023@latest
+          - alias: al2023@v20241024
       nodePool:
         labels:
-          - instanceType: inferentia-inf2
+          - instanceType: trainium-trn1
           - provisionerType: Karpenter
-          - hub.jupyter.org/node-purpose: user
           - karpenterVersion: ${resource.helm_release.karpenter.version}
         taints:
           - key: aws.amazon.com/neuron
@@ -303,16 +302,13 @@ module "eks_data_addons" {
         requirements:
           - key: "karpenter.k8s.aws/instance-family"
             operator: In
-            values: ["inf2"]
+            values: ["trn1"]
           - key: "kubernetes.io/arch"
             operator: In
             values: ["amd64"]
           - key: "karpenter.sh/capacity-type"
             operator: In
-            values: [ "on-demand"]
-          - key: "karpenter.k8s.aws/instance-size"
-            operator: In
-            values: ["8xlarge"]
+            values: ["on-demand"]
         limits:
           cpu: 1000
         disruption:
