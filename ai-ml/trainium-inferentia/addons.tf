@@ -288,8 +288,6 @@ module "eks_data_addons" {
           volumeType: gp3
           encrypted: true
           deleteOnTermination: true
-        amiSelectorTerms:
-          - alias: al2023@v20241024
       nodePool:
         labels:
           - instanceType: trainium-trn1
