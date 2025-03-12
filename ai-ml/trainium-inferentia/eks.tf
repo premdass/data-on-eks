@@ -157,7 +157,7 @@ resource "helm_release" "karpenter" {
   repository_username = data.aws_ecrpublic_authorization_token.token.user_name
   repository_password = data.aws_ecrpublic_authorization_token.token.password
   chart               = "karpenter"
-  version             = "1.0.6"
+  version             = "1.3.2"
   wait                = true
 
   values = [
@@ -170,6 +170,25 @@ resource "helm_release" "karpenter" {
       name: ${module.karpenter.service_account}
     EOT
   ]
+
+  lifecycle {
+    ignore_changes = [
+      repository_password
+    ]
+  }
+  depends_on = [helm_release.karpenter_crd]
+}
+
+resource "helm_release" "karpenter_crd" {
+  name                = "karpenter-crd"
+  namespace           = "kube-system"
+  repository          = "oci://public.ecr.aws/karpenter"
+  repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+  repository_password = data.aws_ecrpublic_authorization_token.token.password
+  chart               = "karpenter-crd"
+  version             = "1.3.2"
+  wait                = true
+
 
   lifecycle {
     ignore_changes = [

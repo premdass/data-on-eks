@@ -15,7 +15,7 @@ variable "region" {
 variable "eks_cluster_version" {
   description = "EKS Cluster version"
   type        = string
-  default     = "1.30"
+  default     = "1.32"
 }
 
 # VPC with 2046 IPs (10.1.0.0/21) and 2 AZs
