@@ -282,12 +282,14 @@ module "eks_data_addons" {
           id: ${module.eks.node_security_group_id}
           tags:
             Name: ${module.eks.cluster_name}-node
-        blockDevice:
-          deviceName: /dev/xvda
-          volumeSize: 500Gi
-          volumeType: gp3
-          encrypted: true
-          deleteOnTermination: true
+        amiSelectorTerms:
+          - alias: al2023@latest
+        blockDeviceMappings:
+          - deviceName: /dev/xvda
+            ebs:
+              volumeSize: 500Gi
+              volumeType: gp3
+              deleteOnTermination: true
       nodePool:
         labels:
           - instanceType: trainium-trn1
@@ -329,12 +331,13 @@ module "eks_data_addons" {
           id: ${module.eks.node_security_group_id}
           tags:
             Name: ${module.eks.cluster_name}-node
-        blockDevice:
-          deviceName: /dev/xvda
-          volumeSize: 200Gi
-          volumeType: gp3
-          encrypted: true
-          deleteOnTermination: true
+        blockDeviceMappings:
+        - deviceName: '/dev/sda1'
+          rootVolume: true
+          ebs:
+            encrypted: true
+            volumeType: gp3
+            volumeSize: 500Gi
         amiSelectorTerms:
           - alias: al2023@latest
       nodePool:
