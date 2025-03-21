@@ -265,111 +265,111 @@ module "eks_data_addons" {
   #---------------------------------------
   # Deploying Karpenter resources(Nodepool and NodeClass) with Helm Chart
   #---------------------------------------
-  enable_karpenter_resources = true
-  # We use index 2 to select the subnet in AZ1 with the 100.x CIDR:
-  #   module.vpc.private_subnets = [AZ1_10.x, AZ2_10.x, AZ1_100.x, AZ2_100.x]
-  karpenter_resources_helm_config = {
-    inferentia-inf2 = {
-      values = [
-        <<-EOT
-      name: trainium-trn1
-      clusterName: ${module.eks.cluster_name}
-      ec2NodeClass:
-        karpenterRole: ${module.karpenter.node_iam_role_name}
-        subnetSelectorTerms:
-          id: ${module.vpc.private_subnets[2]}
-        securityGroupSelectorTerms:
-          id: ${module.eks.node_security_group_id}
-          tags:
-            Name: ${module.eks.cluster_name}-node
-        amiSelectorTerms:
-          - alias: al2023@latest
-        blockDeviceMappings:
-          - deviceName: /dev/xvda
-            ebs:
-              volumeSize: 500Gi
-              volumeType: gp3
-              deleteOnTermination: true
-      nodePool:
-        labels:
-          - instanceType: trainium-trn1
-          - provisionerType: Karpenter
-          - karpenterVersion: ${resource.helm_release.karpenter.version}
-        taints:
-          - key: aws.amazon.com/neuron
-            value: "true"
-            effect: "NoSchedule"
-        requirements:
-          - key: "karpenter.k8s.aws/instance-family"
-            operator: In
-            values: ["trn1"]
-          - key: "kubernetes.io/arch"
-            operator: In
-            values: ["amd64"]
-          - key: "karpenter.sh/capacity-type"
-            operator: In
-            values: ["on-demand"]
-        limits:
-          cpu: 1000
-        disruption:
-          consolidationPolicy: WhenEmpty
-          consolidateAfter: 300s
-          expireAfter: 720h
-        weight: 100
-      EOT
-      ]
-    }
-    default = {
-      values = [
-        <<-EOT
-      clusterName: ${module.eks.cluster_name}
-      ec2NodeClass:
-        karpenterRole: ${module.karpenter.node_iam_role_name}
-        subnetSelectorTerms:
-          id: ${module.vpc.private_subnets[2]}
-        securityGroupSelectorTerms:
-          id: ${module.eks.node_security_group_id}
-          tags:
-            Name: ${module.eks.cluster_name}-node
-        blockDeviceMappings:
-        - deviceName: '/dev/sda1'
-          rootVolume: true
-          ebs:
-            encrypted: true
-            volumeType: gp3
-            volumeSize: 500Gi
-        amiSelectorTerms:
-          - alias: al2023@latest
-      nodePool:
-        labels:
-          - instanceType: mixed-x86
-          - provisionerType: Karpenter
-          - workload: rayhead
-          - karpenterVersion: ${resource.helm_release.karpenter.version}
-        requirements:
-          - key: "karpenter.k8s.aws/instance-family"
-            operator: In
-            values: ["c5", "m5", "r5"]
-          - key: "karpenter.k8s.aws/instance-size"
-            operator: In
-            values: ["xlarge", "2xlarge", "4xlarge", "8xlarge", "16xlarge", "24xlarge"]
-          - key: "kubernetes.io/arch"
-            operator: In
-            values: ["amd64"]
-          - key: "karpenter.sh/capacity-type"
-            operator: In
-            values: ["spot", "on-demand"]
-        limits:
-          cpu: 1000
-        disruption:
-          consolidationPolicy: WhenEmpty
-          consolidateAfter: 300s
-          expireAfter: 720h
-        weight: 100
-      EOT
-      ]
-    }
-  }
+  # enable_karpenter_resources = true
+  # # We use index 2 to select the subnet in AZ1 with the 100.x CIDR:
+  # #   module.vpc.private_subnets = [AZ1_10.x, AZ2_10.x, AZ1_100.x, AZ2_100.x]
+  # karpenter_resources_helm_config = {
+  #   inferentia-inf2 = {
+  #     values = [
+  #       <<-EOT
+  #     name: trainium-trn1
+  #     clusterName: ${module.eks.cluster_name}
+  #     ec2NodeClass:
+  #       karpenterRole: ${module.karpenter.node_iam_role_name}
+  #       subnetSelectorTerms:
+  #         id: ${module.vpc.private_subnets[2]}
+  #       securityGroupSelectorTerms:
+  #         id: ${module.eks.node_security_group_id}
+  #         tags:
+  #           Name: ${module.eks.cluster_name}-node
+  #       amiSelectorTerms:
+  #         - alias: al2023@latest
+  #       blockDeviceMappings:
+  #         - deviceName: /dev/xvda
+  #           ebs:
+  #             volumeSize: 500Gi
+  #             volumeType: gp3
+  #             deleteOnTermination: true
+  #     nodePool:
+  #       labels:
+  #         - instanceType: trainium-trn1
+  #         - provisionerType: Karpenter
+  #         - karpenterVersion: ${resource.helm_release.karpenter.version}
+  #       taints:
+  #         - key: aws.amazon.com/neuron
+  #           value: "true"
+  #           effect: "NoSchedule"
+  #       requirements:
+  #         - key: "karpenter.k8s.aws/instance-family"
+  #           operator: In
+  #           values: ["trn1"]
+  #         - key: "kubernetes.io/arch"
+  #           operator: In
+  #           values: ["amd64"]
+  #         - key: "karpenter.sh/capacity-type"
+  #           operator: In
+  #           values: ["on-demand"]
+  #       limits:
+  #         cpu: 1000
+  #       disruption:
+  #         consolidationPolicy: WhenEmpty
+  #         consolidateAfter: 300s
+  #         expireAfter: 720h
+  #       weight: 100
+  #     EOT
+  #     ]
+  #   }
+  #   default = {
+  #     values = [
+  #       <<-EOT
+  #     clusterName: ${module.eks.cluster_name}
+  #     ec2NodeClass:
+  #       karpenterRole: ${module.karpenter.node_iam_role_name}
+  #       subnetSelectorTerms:
+  #         id: ${module.vpc.private_subnets[2]}
+  #       securityGroupSelectorTerms:
+  #         id: ${module.eks.node_security_group_id}
+  #         tags:
+  #           Name: ${module.eks.cluster_name}-node
+  #       blockDeviceMappings:
+  #       - deviceName: '/dev/sda1'
+  #         rootVolume: true
+  #         ebs:
+  #           encrypted: true
+  #           volumeType: gp3
+  #           volumeSize: 500Gi
+  #       amiSelectorTerms:
+  #         - alias: al2023@latest
+  #     nodePool:
+  #       labels:
+  #         - instanceType: mixed-x86
+  #         - provisionerType: Karpenter
+  #         - workload: rayhead
+  #         - karpenterVersion: ${resource.helm_release.karpenter.version}
+  #       requirements:
+  #         - key: "karpenter.k8s.aws/instance-family"
+  #           operator: In
+  #           values: ["c5", "m5", "r5"]
+  #         - key: "karpenter.k8s.aws/instance-size"
+  #           operator: In
+  #           values: ["xlarge", "2xlarge", "4xlarge", "8xlarge", "16xlarge", "24xlarge"]
+  #         - key: "kubernetes.io/arch"
+  #           operator: In
+  #           values: ["amd64"]
+  #         - key: "karpenter.sh/capacity-type"
+  #           operator: In
+  #           values: ["spot", "on-demand"]
+  #       limits:
+  #         cpu: 1000
+  #       disruption:
+  #         consolidationPolicy: WhenEmpty
+  #         consolidateAfter: 300s
+  #         expireAfter: 720h
+  #       weight: 100
+  #     EOT
+  #     ]
+  #   }
+  # }
 }
 
 #---------------------------------------------------------------

@@ -93,7 +93,7 @@ module "eks" {
       )
 
       # aws ssm get-parameters --names /aws/service/eks/optimized-ami/1.27/amazon-linux-2/recommended/image_id --region us-west-2
-      ami_type     = "AL2_x86_64" # Use this for Graviton AL2_ARM_64
+      ami_type     = "AL2023_x86_64_STANDARD" # Use this for Graviton AL2_ARM_64
       min_size     = 2
       max_size     = 8
       desired_size = 2
@@ -110,7 +110,110 @@ module "eks" {
         Name = "core-node-grp"
       })
     }
+    #  This node group is used for hosting ML workloads
+    trn1-ng1 = {
+      name        = "trn-node-group"
+      description = "Tran1 node group for hosting ML workloads"
+      # All trn1 instances should be launched into the same subnet in the preferred trn1 AZ
+      # The preferred AZ is the first AZ listed in the AZ id <-> region mapping in main.tf.
+      # We use index 2 to select the subnet in AZ1 with the 100.x CIDR:
+      #   module.vpc.private_subnets = [AZ1_10.x, AZ2_10.x, AZ1_100.x, AZ2_100.x]
+      subnet_ids = [module.vpc.private_subnets[2]]
+      # aws ssm get-parameters --names /aws/service/eks/optimized-ami/1.27/amazon-linux-2-gpu/recommended/image_id --region us-west-2
+      # ami_id   = "ami-0e0deb7ae582f6fe9" # Use this to pass custom AMI ID and ignore ami_type
+      ami_type       = "AL2023_x86_64_NEURON" # Contains Neuron driver
+      instance_types = ["trn1.2xlarge"]
 
+      pre_bootstrap_user_data = <<-EOT
+        # Mount instance store volumes in RAID-0 for kubelet and containerd
+        # https://github.com/awslabs/amazon-eks-ami/blob/master/doc/USER_GUIDE.md#raid-0-for-kubelet-and-containerd-raid0
+        /bin/setup-local-disks raid0
+
+        # Install Neuron monitoring tools
+        yum install aws-neuronx-tools-2.* -y
+        export PATH=/opt/aws/neuron/bin:$PATH
+
+        # Install latest version of aws cli
+        mkdir /awscli \
+        && wget https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O /awscli/awscliv2.zip  \
+        && unzip /awscli/awscliv2.zip -d /awscli/ \
+        && /awscli/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update \
+        && rm -rf /awscli
+      EOT
+
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+
+      labels = {
+        "vpc.amazonaws.com/efa.present" = "true"
+        instance-type                   = "trn1-2xl"
+        provisioner                     = "cluster-autoscaler"
+      }
+
+      taints = [
+        {
+          key    = "aws.amazon.com/neuron",
+          value  = true,
+          effect = "NO_SCHEDULE"
+        }
+      ]
+      tags = merge(local.tags, {
+        Name = "trn1-ng1",
+      })
+    }
+
+    inf2-ng1 = {
+      name        = "inf-node-group"
+      description = "Inf node group for hosting ML workloads"
+      # All inf instances should be launched into the same subnet in the preferred inf AZ
+      # The preferred AZ is the first AZ listed in the AZ id <-> region mapping in main.tf.
+      # We use index 2 to select the subnet in AZ1 with the 100.x CIDR:
+      #   module.vpc.private_subnets = [AZ1_10.x, AZ2_10.x, AZ1_100.x, AZ2_100.x]
+      subnet_ids = [module.vpc.private_subnets[2]]
+      # aws ssm get-parameters --names /aws/service/eks/optimized-ami/1.27/amazon-linux-2-gpu/recommended/image_id --region us-west-2
+      # ami_id   = "ami-0e0deb7ae582f6fe9" # Use this to pass custom AMI ID and ignore ami_type
+      ami_type       = "AL2023_x86_64_NEURON" # Contains Neuron driver
+      instance_types = ["inf2.xlarge"]
+
+      pre_bootstrap_user_data = <<-EOT
+        # Mount instance store volumes in RAID-0 for kubelet and containerd
+        # https://github.com/awslabs/amazon-eks-ami/blob/master/doc/USER_GUIDE.md#raid-0-for-kubelet-and-containerd-raid0
+        /bin/setup-local-disks raid0
+
+        # Install Neuron monitoring tools
+        yum install aws-neuronx-tools-2.* -y
+        export PATH=/opt/aws/neuron/bin:$PATH
+
+        # Install latest version of aws cli
+        mkdir /awscli \
+        && wget https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip -O /awscli/awscliv2.zip  \
+        && unzip /awscli/awscliv2.zip -d /awscli/ \
+        && /awscli/aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update \
+        && rm -rf /awscli
+      EOT
+
+      min_size     = 1
+      max_size     = 1
+      desired_size = 1
+
+      labels = {
+        "vpc.amazonaws.com/efa.present" = "true"
+        instance-type                   = "inf2-xlarge"
+        provisioner                     = "cluster-autoscaler"
+      }
+
+      taints = [
+        {
+          key    = "aws.amazon.com/neuron",
+          value  = true,
+          effect = "NO_SCHEDULE"
+        }
+      ]
+      tags = merge(local.tags, {
+        Name = "inf2-ng1",
+      })
+    }
   }
 
   tags = merge(local.tags, {
@@ -145,54 +248,54 @@ module "karpenter" {
   tags = local.tags
 }
 
-################################################################################
-# Karpenter Helm chart
-################################################################################
-
-resource "helm_release" "karpenter" {
-  name                = "karpenter"
-  namespace           = "kube-system"
-  create_namespace    = true
-  repository          = "oci://public.ecr.aws/karpenter"
-  repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-  repository_password = data.aws_ecrpublic_authorization_token.token.password
-  chart               = "karpenter"
-  version             = "1.3.2"
-  wait                = true
-
-  values = [
-    <<-EOT
-    settings:
-      clusterName: ${module.eks.cluster_name}
-      clusterEndpoint: ${module.eks.cluster_endpoint}
-      interruptionQueue: ${module.karpenter.queue_name}
-    serviceAccount:
-      name: ${module.karpenter.service_account}
-    EOT
-  ]
-
-  lifecycle {
-    ignore_changes = [
-      repository_password
-    ]
-  }
-  depends_on = [helm_release.karpenter_crd]
-}
-
-resource "helm_release" "karpenter_crd" {
-  name                = "karpenter-crd"
-  namespace           = "kube-system"
-  repository          = "oci://public.ecr.aws/karpenter"
-  repository_username = data.aws_ecrpublic_authorization_token.token.user_name
-  repository_password = data.aws_ecrpublic_authorization_token.token.password
-  chart               = "karpenter-crd"
-  version             = "1.3.2"
-  wait                = true
-
-
-  lifecycle {
-    ignore_changes = [
-      repository_password
-    ]
-  }
-}
+# ################################################################################
+# # Karpenter Helm chart
+# ################################################################################
+#
+# resource "helm_release" "karpenter" {
+#   name                = "karpenter"
+#   namespace           = "kube-system"
+#   create_namespace    = true
+#   repository          = "oci://public.ecr.aws/karpenter"
+#   repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+#   repository_password = data.aws_ecrpublic_authorization_token.token.password
+#   chart               = "karpenter"
+#   version             = "1.3.2"
+#   wait                = true
+#
+#   values = [
+#     <<-EOT
+#     settings:
+#       clusterName: ${module.eks.cluster_name}
+#       clusterEndpoint: ${module.eks.cluster_endpoint}
+#       interruptionQueue: ${module.karpenter.queue_name}
+#     serviceAccount:
+#       name: ${module.karpenter.service_account}
+#     EOT
+#   ]
+#
+#   lifecycle {
+#     ignore_changes = [
+#       repository_password
+#     ]
+#   }
+#   depends_on = [helm_release.karpenter_crd]
+# }
+#
+# resource "helm_release" "karpenter_crd" {
+#   name                = "karpenter-crd"
+#   namespace           = "kube-system"
+#   repository          = "oci://public.ecr.aws/karpenter"
+#   # repository_username = data.aws_ecrpublic_authorization_token.token.user_name
+#   # repository_password = data.aws_ecrpublic_authorization_token.token.password
+#   chart               = "karpenter-crd"
+#   version             = "1.3.2"
+#   wait                = true
+#
+#
+#   # lifecycle {
+#   #   ignore_changes = [
+#   #     repository_password
+#   #   ]
+#   # }
+# }

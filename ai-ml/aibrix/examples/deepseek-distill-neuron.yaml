@@ -37,6 +37,7 @@ spec:
             limits:
               aws.amazon.com/neuron: "1"
             requests:
+              memory: "20Gi"
               aws.amazon.com/neuron: "1"
           livenessProbe:
             failureThreshold: 3
@@ -58,8 +59,6 @@ spec:
             periodSeconds: 30
             successThreshold: 1
             timeoutSeconds: 1
-      nodeSelector:
-        instanceType: trainium-trn1
       tolerations:
         - key: "aws.amazon.com/neuron"
           operator: "Exists"
