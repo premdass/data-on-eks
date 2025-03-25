@@ -23,7 +23,7 @@ spec:
     spec:
       containers:
         - command: ["/bin/sh","-c"]
-          args: ["vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --host 0.0.0.0 --port 8000 --served-model-name deepseek-r1-distill-llama-8b --device neuron --tensor-parallel-size 2 --max-num-seqs 4 --max-model-len 1024"]
+          args: ["vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-8B --host 0.0.0.0 --port 8000 --served-model-name deepseek-r1-distill-llama-8b --device neuron --tensor-parallel-size 2 --max-num-seqs 4 --max-model-len 2048"]
           env:
             - name: VLLM_LOGGING_LEVEL
               value: "INFO"
